@@ -1,0 +1,2 @@
+blackjackGame = None
+blackjackOwner = ""
