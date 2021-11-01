@@ -26,7 +26,7 @@ class BlackjackBoard:
         self.starting = True
         self.boardMessage = None
         self.boardMessage = None
-        self.round = 1
+        self.round = 0
 
         self.deck = None
         self.dealer = {"cards": [], "values": [0]}
@@ -52,6 +52,7 @@ class BlackjackBoard:
             return True
 
     def reset(self):
+        self.round += 1
         for playerid in self.players:
             self.players[playerid]["hand"] = {"cards": [], "values": [0]}
             self.players[playerid]["inPlay"] = True
@@ -156,7 +157,27 @@ class BlackjackBoard:
         else:
             winners = ["Dealer"]
 
+        for winner in winners:
+            pass  # TODO: add user object so value can be added to dictionary
+            for playerid in self.players:
+                if self.players[playerid]["name"] == winner:
+                    self.players[playerid]["wins"] += 1
+                else:
+                    self.players[playerid]["losses"] += 1
+
         return winners, draw, topvalue, topPlayers, dealertop, cardlist
+
+    def getWinnerDict(self):
+        winDict = {}
+        for playerid in self.players:
+            if (score := self.players[playerid]["wins"]) not in winDict:
+                winDict[score] = [self.players[playerid]["name"]]
+            else:
+                winDict[score].append(self.players[playerid]["name"])
+
+        # winDict[1] = "abc"
+
+        return winDict
 
 def genReportEmbed():
     gameReport, dealerReport = store.blackjackGame.report()

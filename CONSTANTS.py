@@ -6,3 +6,5 @@ TAGLEN = 5
 # BlackJack data
 HIT = "👊"
 FOLD = "✋"
+REPLAY = "🟢"
+NOREPLAY = "🔴"

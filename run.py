@@ -1,7 +1,7 @@
-import client
+import commands
 from discord import Intents
 
 intents = Intents.all()
 
-client = client.PlayBot(intents=intents)
+client = commands.PlayBot(intents=intents)
 client.run('TOKEN')
