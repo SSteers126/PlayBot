@@ -1,3 +1,4 @@
+import sys
 import time
 
 import discord
@@ -8,10 +9,18 @@ import games
 
 from asyncio import TimeoutError as asyncTimeout
 
+import pick
+import dl
+
 def messageStartsWith(matching, message):
     return message.content.split(" ")[0].lower() == ("{0}{1}".format(CONSTANTS.PREFIX, matching))
 
 class PlayBot(discord.Client):
+
+    # def __init__(self):
+        # super(PlayBot, self).__init__()
+        # self.voice = None
+
     async def on_ready(self):
         print('Logged on as {0}!'.format(self.user))
 
@@ -53,8 +62,8 @@ class PlayBot(discord.Client):
                 limit = numdel * 5
 
             async for histMessage in currentChannel.history(limit=limit):
-                print(histMessage.content)
-                print(preftext := str(histMessage.content)[:len(CONSTANTS.PREFIX)])
+                # print(histMessage.content)
+                preftext = str(histMessage.content)[:len(CONSTANTS.PREFIX)]
                 if preftext == CONSTANTS.PREFIX:
                     await histMessage.delete()
 
@@ -385,3 +394,84 @@ class PlayBot(discord.Client):
                             # TODO: clean up winner string generator for drawing, and then add the ability to play more rounds,
                             #  and to message bust/folded players without giving choices
                             #  (may the case that it only occurs when multiple people are playing, test this)
+
+        if messageStartsWith("flipcoin", message):
+            await message.delete()
+            flipEmbed = discord.Embed(title="{0}'s coin flip".format(message.author.name),
+                                      description="Got a {0}!".format(games.coinFlip()),
+                                      colour=discord.Colour(255).random())
+
+            await message.channel.send(embed=flipEmbed)
+
+        if messageStartsWith("pickcard", message):
+            try:
+                decktype = message.content.split(" ")[1]
+            except IndexError:  # Raised when no deck type is given
+                decktype = "52"
+
+            cardEmbed = discord.Embed(title="{0}'s random card".format(message.author.name),
+                                      description="Picked {0}!".format(pick.pickCard(decktype)),
+                                      colour=discord.Colour(255).random())
+            await message.delete()
+            await message.channel.send(embed=cardEmbed)
+
+        if messageStartsWith("loadtrack", message):
+            await message.delete()
+
+            if len(message.content.split(" ")) > 1:
+                # query = message.content[11:]
+                notifier = await message.channel.send("Downloading track for query {0}..."
+                                                      .format((query := message.content[11:])))
+                fileName = dl.yt_download(query)
+
+                await notifier.edit(content="Download Complete! Filename: {0}".format(fileName), delete_after=5.0)
+                # print(query)
+
+            else:
+                await message.channel.send("{0}, You need to seperate your query or link with a space!"
+                                           .format(message.author.mention), delete_after=5.0)
+
+        if messageStartsWith("play", message):
+            # if self.voice is None:
+            if (vc := message.author.voice.channel) is not None:
+                # TODO: find a better way to connect to the channel the user is in
+                try:
+                    CONSTANTS.VOICE = await vc.connect()
+                except Exception as e:
+                    print(e)
+
+            print(vc)
+
+            await message.delete()
+
+            if len(message.content.split(" ")) > 1:
+                # query = message.content[11:]
+                notifier = await message.channel.send("Downloading track for query {0}..."
+                                                      .format((query := message.content[6:])))
+                fileName = dl.yt_download(query)
+
+                link = "https://www.youtube.com/watch?v={0}".format(fileName.split("___")[0])
+
+                await notifier.edit(content="Playing {0}!".format(link))
+
+                sound = await discord.FFmpegOpusAudio.from_probe("media\\{0}".format(fileName.replace("|", "_")), executable=CONSTANTS.FF_DIR)
+
+                try:
+                    CONSTANTS.VOICE.play(sound)
+                except:
+                    await CONSTANTS.VOICE.disconnect()
+                    CONSTANTS.VOICE = await vc.connect()
+                    CONSTANTS.VOICE.play(sound)
+
+
+                # TODO: use next instead of directly playing the collected source,
+                #  to play the next source as the one before is finished
+
+                # await message.author.voiceChannel.connect()
+
+        if messageStartsWith("exit", message):
+            if CONSTANTS.VOICE is not None:
+                await CONSTANTS.VOICE.stop()
+                await CONSTANTS.VOICE.disconnect()
+
+            sys.exit()
